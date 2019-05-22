@@ -29,9 +29,7 @@ const BING = 'Bing Ads'
 const GOOGLEADS = 'Google Ads';
 
 const exampleSites = [
-	'https://www.logicalposition.com/',
-	'https://www.millerplastics.com/',
-	'https://www.hannaandersson.com/baby-girl/56548-V98.html?cgid=baby-girl&dwvar_56548-V98_color=V98'
+	'http://localhost'
 ];
 
 const sites = (process.argv.length > 2)
@@ -50,16 +48,23 @@ const checkPage = async site => {
 	const browser = await puppeteer.launch({ headless: true });
 	const page = await browser.newPage();
 	
-	page.on('request', request => {
-		const url = request._url;
+	page.on('request', request => { // on request
+		const url = request._url; // catch all requests 
 		
-		if (url.indexOf('google-analytics.com') > -1) {
-			const parsedUrl = URL.parse(url, true);
-			
+
+		// google analytics
+		if (url.indexOf('google-analytics.com') > -1) { // if analytics detected
+			const parsedUrl = URL.parse(url, true); // if the url == the url.indexof true
+			//console.log(parsedUrl)///////
+
+			// failout 
 			if (typeof parsedUrl.query.tid != 'undefined' && typeof parsedUrl.query.t != 'undefined') {
 				console.log(`${site} - GOOGLE ANALYTICS: ${parsedUrl.query.tid} - ${parsedUrl.query.t.toUpperCase()}`);
 				storeData(GOOGLEANALYTICS, { id: parsedUrl.query.tid, hitType: parsedUrl.query.t });
 			}
+
+
+			// facebook pixel 
 		} else if (url.indexOf('facebook.com/tr/') > -1) {
 			const parsedUrl = URL.parse(url, true);
 			
@@ -67,6 +72,9 @@ const checkPage = async site => {
 				console.log(`${site} - FACEBOOK PIXEL: ${parsedUrl.query.id} - ${parsedUrl.query.ev.toUpperCase()}`);
 				storeData(FACEBOOK, { id: parsedUrl.query.id, hitType: parsedUrl.query.ev });
 			}
+
+
+			// google ads
 		} else if (url.indexOf('googleads.g.doubleclick.net') > -1) {
 			const parsedUrl = URL.parse(url, true);
 
@@ -76,6 +84,8 @@ const checkPage = async site => {
 				console.log(`${site} - GOOGLE ADS REMARKETING: ${conversionId}`);
 				storeData(GOOGLEADS, { id: conversionId });
 			}
+
+			// microsoft ads
 		} else if (url.indexOf('bat.bing.com/action') > -1) {
 			const parsedUrl = URL.parse(url, true);
 			
@@ -86,8 +96,11 @@ const checkPage = async site => {
 		}
 	});
 	
-	await page.goto(site);
-	await browser.close();
+
+
+	
+	await page.goto(site); // get the site
+	await browser.close(); 
 	
 	reportJson[site] = trackingInformation;
 	
@@ -112,12 +125,43 @@ const checkPage = async site => {
 let reportJson = {};
 let promiseArr = [];
 
+
+/*
+
+//Debug pane
+// feed vars for the table
+// pretty self explanatory, feed instance stuff, itll make a table. Expand as pylons counts allow
+var tick =0;
+// an object whose properties are strings
+function instance(target,googleAnalytics,googleAds,facebook,microsoft) {
+  this.tick = tick;
+  this.target = target;
+  this.googleAnalytics = googleAnalytics;
+  this.googleAds = googleAds; 
+  this.facebook = facebook;
+  this.microsoft = microsoft;
+}
+
+setInterval(function(){ 
+tick+=1
+console.clear()
+console.table(new instance('target','googleAnalytics','googleAds','facebook','microsoft'));
+}, 200);
+*/
+
+
+
+
+// go through arr of sites and run checksites against each
 sites.forEach(site => {
-	reportJson[site] = {};
-	promiseArr.push(checkPage(site));
+	reportJson[site] = {}; // make anon instance of object for parent site
+
+	promiseArr.push(checkPage(site)); // get site 
 });
 
 Promise.all(promiseArr).then(() => {
 	console.log('All done! Results:');
-	console.dir(reportJson, { depth: null });
+//	console.dir(reportJson, { depth: null }); // log report
 });
+
+
