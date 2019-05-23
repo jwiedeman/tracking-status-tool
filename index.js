@@ -89,17 +89,15 @@ const checkPage = async site => {
 
 		// google ads
 		} else if (url.indexOf('googleads.g.doubleclick.net') > -1) {
-			const parsedUrl = URL.parse(url, true);
-			
+            let parsedUrl = URL.parse(url, true);
+            let conversionId = parsedUrl.pathname.split('/')[3];
+      
+            // Check if the URL contained query string values for the conversion ID
+            console.log(`## GOOGLE ADS : ${conversionId}`);
+            storeData(GOOGLEADS, { id: conversionId ,payload:parsedUrl});
 
-			if (parsedUrl.pathname.split('/').length > 4 && parsedUrl.pathname.split('/')[3].length === 9) {
-				const conversionId = parsedUrl.pathname.split('/')[3];
-				console.log(`## GOOGLE ADS REMARKETING: ${conversionId}`);
-				storeData(GOOGLEADS, { id: conversionId ,hitType: parsedUrl.query.evt,payload:parsedUrl});
-			}
-
-		// microsoft ads
-		} else if (url.indexOf('bat.bing.com/action') > -1) {
+        // microsoft ads
+          } else if (url.indexOf('bat.bing.com/action') > -1) {
 			const parsedUrl = URL.parse(url, true);
 			
 
@@ -131,7 +129,7 @@ const checkPage = async site => {
 	
 
 		if (typeof id != 'undefined' && typeof hitType != 'undefined') { // if ID and hittype are not undefined
-
+            
 			
 
 			info[id] = (typeof info[id] != 'undefined') // if ID = true
@@ -140,9 +138,10 @@ const checkPage = async site => {
 			
 			info[id][hitType] = (typeof info[id][hitType] != 'undefined') // if ID and hittype are true
 				? info[id][hitType] + 1 
-				: 1; 
-
-			info[payload] = (typeof payload != 'undefined') // if ID = true
+                : 1; 
+                
+            console.log( info)
+			info[id][payload] = (typeof payload != 'undefined') // if ID = true
 				? payload //assign info ID 
 				: {};
 
@@ -157,7 +156,7 @@ const checkPage = async site => {
 
 
 
-/*
+
 
 //Debug pane
 // feed vars for the table
@@ -177,8 +176,9 @@ setInterval(function(){
 tick+=1
 console.clear()
 console.table(new instance('target','googleAnalytics','googleAds','facebook','microsoft'));
+console.table(new instance('target','googleAnalytics','googleAds','facebook','microsoft'));
 }, 200);
-*/
+
 
 
 
@@ -204,7 +204,7 @@ Promise.all(promiseArr).then(() => {
 });
 
 
-/* Google Analytics Request obj
+/* Google Analytics 
 
     "protocol": "https:",
     "slashes": true,
@@ -243,5 +243,122 @@ Promise.all(promiseArr).then(() => {
     "path": "/collect?v=1&_v=j75&a=1799258067&t=event&_s=2&dl=http%3A%2F%2Flocalhost%2F&ul=en-us&de=UTF-8&dt=Get%20Out%20Of%20Here%2C%20Stalker!&sd=24-bit&sr=800x600&vp=800x600&je=0&ec=contact&ea=submit&el=form&_u=IEBAAEAB~&jid=&gjid=&cid=278790741.1558555493&tid=UA-0000001-1&_gid=309095230.1558555493&z=1306995020",
     "href": "https://www.google-analytics.com/collect?v=1&_v=j75&a=1799258067&t=event&_s=2&dl=http%3A%2F%2Flocalhost%2F&ul=en-us&de=UTF-8&dt=Get%20Out%20Of%20Here%2C%20Stalker!&sd=24-bit&sr=800x600&vp=800x600&je=0&ec=contact&ea=submit&el=form&_u=IEBAAEAB~&jid=&gjid=&cid=278790741.1558555493&tid=UA-0000001-1&_gid=309095230.1558555493&z=1306995020"
 
+
+*/
+
+/* GOOGLE ADS
+
+"protocol": "https:",
+    "slashes": true,
+    "auth": null,
+    "host": "googleads.g.doubleclick.net",
+    "port": null,
+    "hostname": "googleads.g.doubleclick.net",
+    "hash": null,
+    "search": "?random=249488597&cv=9&fst=*&num=1&value=1&label=cJKHCI3yvJ0BEIqJ_MwD&guid=ON&resp=GooglemKTybQhCsO&u_h=600&u_w=800&u_ah=600&u_aw=800&u_cd=24&u_his=2&u_tz=-420&u_java=false&u_nplug=0&u_nmime=0&gtm=2wg5f2&sendb=1&frm=0&url=http://localhost/&tiba=Get%20Out%20Of%20Here%2C%20Stalker!&async=1&fmt=3&ctc_id=CAIVAgAAAB0CAAAA&ct_cookie_present=false&ocp_id=ZKvlXNnCOcSh9AOV57GgDA&crd=&gtd=&eitems=ChAI8OaT5wUQnvPjg4C_1Mo6Eh0At185kElHMuu7dhgO8seWFk3ixSiImLcD62H0WQ",
+    "query": {
+        "random": "249488597",
+        "cv": "9",
+        "fst": "*",
+        "num": "1",
+        "value": "1",
+        "label": "cJKHCI3yvJ0BEIqJ_MwD",
+        "guid": "ON",
+        "resp": "GooglemKTybQhCsO",
+        "u_h": "600",
+        "u_w": "800",
+        "u_ah": "600",
+        "u_aw": "800",
+        "u_cd": "24",
+        "u_his": "2",
+        "u_tz": "-420",
+        "u_java": "false",
+        "u_nplug": "0",
+        "u_nmime": "0",
+        "gtm": "2wg5f2",
+        "sendb": "1",
+        "frm": "0",
+        "url": "http://localhost/",
+        "tiba": "Get Out Of Here, Stalker!",
+        "async": "1",
+        "fmt": "3",
+        "ctc_id": "CAIVAgAAAB0CAAAA",
+        "ct_cookie_present": "false",
+        "ocp_id": "ZKvlXNnCOcSh9AOV57GgDA",
+        "crd": "",
+        "gtd": "",
+        "eitems": "ChAI8OaT5wUQnvPjg4C_1Mo6Eh0At185kElHMuu7dhgO8seWFk3ixSiImLcD62H0WQ"
+    },
+    "pathname": "/pagead/viewthroughconversion/966722698/",
+    "path": "/pagead/viewthroughconversion/966722698/?random=249488597&cv=9&fst=*&num=1&value=1&label=cJKHCI3yvJ0BEIqJ_MwD&guid=ON&resp=GooglemKTybQhCsO&u_h=600&u_w=800&u_ah=600&u_aw=800&u_cd=24&u_his=2&u_tz=-420&u_java=false&u_nplug=0&u_nmime=0&gtm=2wg5f2&sendb=1&frm=0&url=http://localhost/&tiba=Get%20Out%20Of%20Here%2C%20Stalker!&async=1&fmt=3&ctc_id=CAIVAgAAAB0CAAAA&ct_cookie_present=false&ocp_id=ZKvlXNnCOcSh9AOV57GgDA&crd=&gtd=&eitems=ChAI8OaT5wUQnvPjg4C_1Mo6Eh0At185kElHMuu7dhgO8seWFk3ixSiImLcD62H0WQ",
+    "href": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/966722698/?random=249488597&cv=9&fst=*&num=1&value=1&label=cJKHCI3yvJ0BEIqJ_MwD&guid=ON&resp=GooglemKTybQhCsO&u_h=600&u_w=800&u_ah=600&u_aw=800&u_cd=24&u_his=2&u_tz=-420&u_java=false&u_nplug=0&u_nmime=0&gtm=2wg5f2&sendb=1&frm=0&url=http://localhost/&tiba=Get%20Out%20Of%20Here%2C%20Stalker!&async=1&fmt=3&ctc_id=CAIVAgAAAB0CAAAA&ct_cookie_present=false&ocp_id=ZKvlXNnCOcSh9AOV57GgDA&crd=&gtd=&eitems=ChAI8OaT5wUQnvPjg4C_1Mo6Eh0At185kElHMuu7dhgO8seWFk3ixSiImLcD62H0WQ"
+
+*/
+
+
+
+/* MICROSOFT ADS
+
+    "protocol": "https:",
+    "slashes": true,
+    "auth": null,
+    "host": "bat.bing.com",
+    "port": null,
+    "hostname": "bat.bing.com",
+    "hash": null,
+    "search": "?ti=57000000&Ver=2&mid=1fcb8ccb-2da6-76ac-49e2-e9dbd324d2c9&pi=0&lg=en-US&sw=800&sh=600&sc=24&tl=Get%20Out%20Of%20Here,%20Stalker!&p=http%3A%2F%2Flocalhost%2F&r=&lt=243&evt=pageLoad&msclkid=N&rn=983543",
+    "query": {
+        "ti": "57000000",
+        "Ver": "2",
+        "mid": "1fcb8ccb-2da6-76ac-49e2-e9dbd324d2c9",
+        "pi": "0",
+        "lg": "en-US",
+        "sw": "800",
+        "sh": "600",
+        "sc": "24",
+        "tl": "Get Out Of Here, Stalker!",
+        "p": "http://localhost/",
+        "r": "",
+        "lt": "243",
+        "evt": "pageLoad",
+        "msclkid": "N",
+        "rn": "983543"
+    },
+    "pathname": "/action/0",
+    "path": "/action/0?ti=57000000&Ver=2&mid=1fcb8ccb-2da6-76ac-49e2-e9dbd324d2c9&pi=0&lg=en-US&sw=800&sh=600&sc=24&tl=Get%20Out%20Of%20Here,%20Stalker!&p=http%3A%2F%2Flocalhost%2F&r=&lt=243&evt=pageLoad&msclkid=N&rn=983543",
+    "href": "https://bat.bing.com/action/0?ti=57000000&Ver=2&mid=1fcb8ccb-2da6-76ac-49e2-e9dbd324d2c9&pi=0&lg=en-US&sw=800&sh=600&sc=24&tl=Get%20Out%20Of%20Here,%20Stalker!&p=http%3A%2F%2Flocalhost%2F&r=&lt=243&evt=pageLoad&msclkid=N&rn=983543"
+
+*/
+
+/* FACEBOOK PIXEL 
+
+    "protocol": "https:",
+    "slashes": true,
+    "auth": null,
+    "host": "www.facebook.com",
+    "port": null,
+    "hostname": "www.facebook.com",
+    "hash": null,
+    "search": "?id=168539446845503&ev=PageView&dl=http%3A%2F%2Flocalhost%2F&rl=&if=false&ts=1558555493249&sw=800&sh=600&v=2.8.50&r=stable&ec=0&o=158&it=1558555492938&coo=false&rqm=GET",
+    "query": {
+        "id": "168539446845503",
+        "ev": "PageView",
+        "dl": "http://localhost/",
+        "rl": "",
+        "if": "false",
+        "ts": "1558555493249",
+        "sw": "800",
+        "sh": "600",
+        "v": "2.8.50",
+        "r": "stable",
+        "ec": "0",
+        "o": "158",
+        "it": "1558555492938",
+        "coo": "false",
+        "rqm": "GET"
+    },
+    "pathname": "/tr/",
+    "path": "/tr/?id=168539446845503&ev=PageView&dl=http%3A%2F%2Flocalhost%2F&rl=&if=false&ts=1558555493249&sw=800&sh=600&v=2.8.50&r=stable&ec=0&o=158&it=1558555492938&coo=false&rqm=GET",
+    "href": "https://www.facebook.com/tr/?id=168539446845503&ev=PageView&dl=http%3A%2F%2Flocalhost%2F&rl=&if=false&ts=1558555493249&sw=800&sh=600&v=2.8.50&r=stable&ec=0&o=158&it=1558555492938&coo=false&rqm=GET"
 
 */
