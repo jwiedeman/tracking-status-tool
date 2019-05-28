@@ -1,8 +1,5 @@
 /**
-* This tool is meant to serve as a simple proof-of-concept and
-* has not been built for expansion/actual real-world use.
-*
-* 
+* I like to think of this project as an alcoholic node process that crawls each page with maximum sobriety 
 * Google Ads:
 *  - Unique String for URL filtering:  'googleads.g.doubleclick.net'
 *  - Conversion ID Expression:         parsedUrl.pathname.split('/')[3];
@@ -18,43 +15,37 @@
 *  - Unique String for URL filtering:  'bat.bing.com/action'
 *  - UET ID Expression:                parsedUrl.query.ti;
 *  - UET HitType Expression:           parsedUrl.query.evt;
-
-${site} -
-
-
-	
 */
+
+// #justnodethings
 var fs = require("fs");
 const puppeteer = require('puppeteer');
+var sitemaps = require('sitemap-stream-parser'); 
 const URL = require('url');
+process.setMaxListeners(Infinity); // y e e t
+
+let tick =0
 const GOOGLEANALYTICS = 'Google Analytics';
 const FACEBOOK = 'Facebook Ads';
 const BING = 'Bing Ads' 
 const GOOGLEADS = 'Google Ads';
 let reportJson = {};
 let promiseArr = [];
-
-// intake from sitemap
-const exampleSites = [
-	'http://localhost'
-];
-
+let targetSite ='http://whostracking.me/sitemap.xml' // Parent target, this will be the base URL to work off of
+let currentTarget =''; //current url being tried
+const exampleSites = [];
+var urls = ['http://whostracking.me/sitemap.xml'];
 
 
-
-
-const sites = (process.argv.length > 2)
-	? process.argv.slice(2)
-	: exampleSites;
 
 
 const checkPage = async site => {
-	console.log('Testing  ', site);
+    currentTarget = site // kinda backwards way of making site acessible 
 	const trackingInformation = {
 		'Google Analytics': {},
 		'Facebook Ads': {},
 		'Bing Ads': {},
-		'Google Ads': []
+		'Google Ads': {} /
 	};
 	
 	const browser = await puppeteer.launch({ headless: true });
@@ -67,298 +58,198 @@ const checkPage = async site => {
 		// google analytics
 		if (url.indexOf('google-analytics.com') > -1) { // if analytics detected
 			const parsedUrl = URL.parse(url, true); // if the url == the url.indexof true
-
-	
 			if (typeof parsedUrl.query.tid != 'undefined' && typeof parsedUrl.query.t != 'undefined') {
-				console.log(`## GOOGLE ANALYTICS: ${parsedUrl.query.tid} - ${parsedUrl.query.t.toUpperCase()}`);
+				//console.log(`## GOOGLE ANALYTICS: ${site} - ${parsedUrl.query.t.toUpperCase()}`);
 				storeData(GOOGLEANALYTICS, { id: parsedUrl.query.tid, hitType: parsedUrl.query.t ,payload:parsedUrl});
 			}
-
-
 
 		// facebook pixel 
 		} else if (url.indexOf('facebook.com/tr/') > -1) {
 			const parsedUrl = URL.parse(url, true);
-			
-
 			if (typeof parsedUrl.query.id != 'undefined' && typeof parsedUrl.query.id != 'undefined') {
-				console.log(`## FACEBOOK PIXEL: ${parsedUrl.query.id} - ${parsedUrl.query.ev.toUpperCase()}`);
+				//console.log(`## FACEBOOK PIXEL: ${site} - ${parsedUrl.query.ev.toUpperCase()}`);
 				storeData(FACEBOOK, { id: parsedUrl.query.id, hitType: parsedUrl.query.ev ,payload:parsedUrl});
 			}
-
 
 		// google ads
 		} else if (url.indexOf('googleads.g.doubleclick.net') > -1) {
             let parsedUrl = URL.parse(url, true);
             let conversionId = parsedUrl.pathname.split('/')[3];
-      
             // Check if the URL contained query string values for the conversion ID
-            console.log(`## GOOGLE ADS : ${conversionId}`);
+            //console.dir(`## GOOGLE ADS : ${site} - ${conversionId}`);
             storeData(GOOGLEADS, { id: conversionId ,payload:parsedUrl});
 
         // microsoft ads
           } else if (url.indexOf('bat.bing.com/action') > -1) {
 			const parsedUrl = URL.parse(url, true);
-			
-
 			if (parsedUrl.protocol == 'https:' &&typeof parsedUrl.query.ti != 'undefined' && typeof parsedUrl.query.evt != 'undefined') {
-				console.log(`## BING UET: ${parsedUrl.query.ti} - ${parsedUrl.query.evt}`);
+				//console.dir(`## BING UET: ${site} - ${parsedUrl.query.evt}`);
 				storeData(BING, { id: parsedUrl.query.ti, hitType: parsedUrl.query.evt,payload:parsedUrl });
 			}
 		}
 	});
 	
-	
 
-	
 	await page.goto(site); // get the site
 	await browser.close(); 
 	
 	reportJson[site] = trackingInformation; //assign reportjson for this crawl instance to the info setup on function load
 	//i.e reportJson.site now contains the empty platforms from tracking information, which will be filled as the page is crawled
-
-
-
-
 	//EX: storeData(BING, { id: parsedUrl.query.ti, hitType: parsedUrl.query.evt });
 	function storeData(platform, dataObj) { //intake as params
 		let { id, hitType ,payload} = dataObj; // set structure for incoming 2 param object, now acessible as normal id, hittype
-
 		let info = trackingInformation[platform];
-
-	
-
 		if (typeof id != 'undefined' && typeof hitType != 'undefined') { // if ID and hittype are not undefined
-            
-			
-
 			info[id] = (typeof info[id] != 'undefined') // if ID = true
-				? info[id] //assign info ID 
+				? id //assign info ID 
 				: {};
-			
+				
 			info[id][hitType] = (typeof info[id][hitType] != 'undefined') // if ID and hittype are true
 				? info[id][hitType] + 1 
                 : 1; 
-                
-            console.log( info)
-			info[id][payload] = (typeof payload != 'undefined') // if ID = true
+           
+			info[id]['payload'] = (typeof payload != 'undefined') // if ID = true
 				? payload //assign info ID 
 				: {};
-
-		} else if (typeof id != 'undefined') { // fail out and assign to default value
-			if (!info.includes(id)) {
-				info.push(id);
-			}
-		}
+		} 
 	}
 };
 
 
 
 
-
-
-//Debug pane
-// feed vars for the table
-// pretty self explanatory, feed instance stuff, itll make a table. Expand as pylons counts allow
-var tick =0;
-// an object whose properties are strings
-function instance(target,googleAnalytics,googleAds,facebook,microsoft) {
-  this.tick = tick;
-  this.target = target;
-  this.googleAnalytics = googleAnalytics;
-  this.googleAds = googleAds; 
-  this.facebook = facebook;
-  this.microsoft = microsoft;
-}
-
-setInterval(function(){ 
-tick+=1
-console.clear()
-console.table(new instance('target','googleAnalytics','googleAds','facebook','microsoft'));
-console.table(new instance('target','googleAnalytics','googleAds','facebook','microsoft'));
-}, 200);
-
-
-
-
+// generate the sitemap
+sitemaps.parseSitemaps(urls, function(url) { exampleSites.push(url); }, function(err, sitemaps) {
+    exampleSites.forEach(element => {
+        console.log('# Sitemap Crawler found - ',element)
+    });
+    onSitemapComplete() // calling the crawl after this to be sure the sitemap is generated before we c r a w l 
+});
 
 // go through arr of sites and run checksites against each
-sites.forEach(site => {
-	reportJson[site] = {}; // make anon instance of object for parent site
+function onSitemapComplete(){
+    exampleSites.forEach(site => {
 
-	promiseArr.push(checkPage(site)); // get site 
-});
-
-Promise.all(promiseArr).then(() => {
-	console.log('All done! Results:');
-	//console.dir(reportJson, { depth: null }); // log report
-	fs.writeFile("./json.json", JSON.stringify(reportJson), (err) => {
-		if (err) {
-			console.error(err);
-			return;
-		};
-		console.log("File has been created");
+		reportJson[site] = {}; // make anon instance of object for parent site
+		console.log('Testing  ', currentTarget);
+		promiseArr.push(checkPage(site)); // get site && push to arr
+		
+	});
+	Promise.all(promiseArr).then(() => {
+		console.log('All done! Results:');
+		found()
+		fs.writeFile("./json.json", JSON.stringify(reportJson), (err) => {
+			console.log("File has been created");
+		});
 	});
 
-});
+}
+    
 
 
-/* Google Analytics 
+function found(){
+	exampleSites.forEach(site => {
+console.log('#### Results for ',site )
+		//console.log('# Google Ads',reportJson[site]['Google Ads'])
+		//console.log('# Google Analytics',reportJson[site]['Google Analytics'])
+		//console.log('# Facebook',reportJson[site]['Facebook'])
+		//console.log('# Bing',reportJson[site]['Bing'])
+		
+	});
+}
 
-    "protocol": "https:",
-    "slashes": true,
-    "auth": null,
-    "host": "www.google-analytics.com",
-    "port": null,
-    "hostname": "www.google-analytics.com",
-    "hash": null,
-    "search": "?v=1&_v=j75&a=1799258067&t=event&_s=2&dl=http%3A%2F%2Flocalhost%2F&ul=en-us&de=UTF-8&dt=Get%20Out%20Of%20Here%2C%20Stalker!&sd=24-bit&sr=800x600&vp=800x600&je=0&ec=contact&ea=submit&el=form&_u=IEBAAEAB~&jid=&gjid=&cid=278790741.1558555493&tid=UA-0000001-1&_gid=309095230.1558555493&z=1306995020",
-    "query": {
-        "v": "1",
-        "_v": "j75",
-        "a": "1799258067",
-        "t": "event",
-        "_s": "2",
-        "dl": "http://localhost/",
-        "ul": "en-us",
-        "de": "UTF-8",
-        "dt": "Get Out Of Here, Stalker!",
-        "sd": "24-bit",
-        "sr": "800x600",
-        "vp": "800x600",
-        "je": "0",
-        "ec": "contact",
-        "ea": "submit",
-        "el": "form",
-        "_u": "IEBAAEAB~",
-        "jid": "",
-        "gjid": "",
-        "cid": "278790741.1558555493",
-        "tid": "UA-0000001-1",
-        "_gid": "309095230.1558555493",
-        "z": "1306995020"
+
+
+
+/**
+ *   "https://whostracking.me/": {
+        "Google Analytics": {
+            "UA-116843097-1": {
+                "pageview": 1,
+                "payload": {
+                    "protocol": "https:",
+                    "slashes": true,
+                    "auth": null,
+                    "host": "www.google-analytics.com",
+                    "port": null,
+                    "hostname": "www.google-analytics.com",
+                    "hash": null,
+                    "search": "?v=1&_v=j75&a=322479791&t=pageview&_s=1&dl=https%3A%2F%2Fwhostracking.me%2F&ul=en-us&de=UTF-8&dt=Whos%20Tracking%20me%3F%20%7C%20whostrackingme&sd=24-bit&sr=800x600&vp=800x600&je=0&_u=IAhAAUAB~&jid=532312629&gjid=1763592671&cid=424356549.1559071000&tid=UA-116843097-1&_gid=211327578.1559071001&_r=1&gtm=2ou5f2&z=2120798624",
+                    "query": {
+                        "v": "1",
+                        "_v": "j75",
+                        "a": "322479791",
+                        "t": "pageview",
+                        "_s": "1",
+                        "dl": "https://whostracking.me/",
+                        "ul": "en-us",
+                        "de": "UTF-8",
+                        "dt": "Whos Tracking me? | whostrackingme",
+                        "sd": "24-bit",
+                        "sr": "800x600",
+                        "vp": "800x600",
+                        "je": "0",
+                        "_u": "IAhAAUAB~",
+                        "jid": "532312629",
+                        "gjid": "1763592671",
+                        "cid": "424356549.1559071000",
+                        "tid": "UA-116843097-1",
+                        "_gid": "211327578.1559071001",
+                        "_r": "1",
+                        "gtm": "2ou5f2",
+                        "z": "2120798624"
+                    },
+                    "pathname": "/r/collect",
+                    "path": "/r/collect?v=1&_v=j75&a=322479791&t=pageview&_s=1&dl=https%3A%2F%2Fwhostracking.me%2F&ul=en-us&de=UTF-8&dt=Whos%20Tracking%20me%3F%20%7C%20whostrackingme&sd=24-bit&sr=800x600&vp=800x600&je=0&_u=IAhAAUAB~&jid=532312629&gjid=1763592671&cid=424356549.1559071000&tid=UA-116843097-1&_gid=211327578.1559071001&_r=1&gtm=2ou5f2&z=2120798624",
+                    "href": "https://www.google-analytics.com/r/collect?v=1&_v=j75&a=322479791&t=pageview&_s=1&dl=https%3A%2F%2Fwhostracking.me%2F&ul=en-us&de=UTF-8&dt=Whos%20Tracking%20me%3F%20%7C%20whostrackingme&sd=24-bit&sr=800x600&vp=800x600&je=0&_u=IAhAAUAB~&jid=532312629&gjid=1763592671&cid=424356549.1559071000&tid=UA-116843097-1&_gid=211327578.1559071001&_r=1&gtm=2ou5f2&z=2120798624"
+                }
+            }
+        },
+        "Facebook Ads": {
+            "1968766133437314": {
+                "PageView": 1,
+                "payload": {
+                    "protocol": "https:",
+                    "slashes": true,
+                    "auth": null,
+                    "host": "www.facebook.com",
+                    "port": null,
+                    "hostname": "www.facebook.com",
+                    "hash": null,
+                    "search": "?id=1968766133437314&ev=GeneralEvent&dl=https%3A%2F%2Fwhostracking.me%2F&rl=&if=false&ts=1559071007320&cd[post_type]=page&cd[post_id]=15&cd[content_name]=Whos%20Tracking%20me%3F&cd[domain]=whostracking.me&cd[user_roles]=guest&cd[plugin]=PixelYourSite&sw=800&sh=600&v=2.8.47&r=stable&a=dvpixelyoursite&ec=1&o=158&fbp=fb.1.1559071007285.910557468&it=1559071006211&coo=false&rqm=GET",
+                    "query": {
+                        "id": "1968766133437314",
+                        "ev": "GeneralEvent",
+                        "dl": "https://whostracking.me/",
+                        "rl": "",
+                        "if": "false",
+                        "ts": "1559071007320",
+                        "cd[post_type]": "page",
+                        "cd[post_id]": "15",
+                        "cd[content_name]": "Whos Tracking me?",
+                        "cd[domain]": "whostracking.me",
+                        "cd[user_roles]": "guest",
+                        "cd[plugin]": "PixelYourSite",
+                        "sw": "800",
+                        "sh": "600",
+                        "v": "2.8.47",
+                        "r": "stable",
+                        "a": "dvpixelyoursite",
+                        "ec": "1",
+                        "o": "158",
+                        "fbp": "fb.1.1559071007285.910557468",
+                        "it": "1559071006211",
+                        "coo": "false",
+                        "rqm": "GET"
+                    },
+                    "pathname": "/tr/",
+                    "path": "/tr/?id=1968766133437314&ev=GeneralEvent&dl=https%3A%2F%2Fwhostracking.me%2F&rl=&if=false&ts=1559071007320&cd[post_type]=page&cd[post_id]=15&cd[content_name]=Whos%20Tracking%20me%3F&cd[domain]=whostracking.me&cd[user_roles]=guest&cd[plugin]=PixelYourSite&sw=800&sh=600&v=2.8.47&r=stable&a=dvpixelyoursite&ec=1&o=158&fbp=fb.1.1559071007285.910557468&it=1559071006211&coo=false&rqm=GET",
+                    "href": "https://www.facebook.com/tr/?id=1968766133437314&ev=GeneralEvent&dl=https%3A%2F%2Fwhostracking.me%2F&rl=&if=false&ts=1559071007320&cd[post_type]=page&cd[post_id]=15&cd[content_name]=Whos%20Tracking%20me%3F&cd[domain]=whostracking.me&cd[user_roles]=guest&cd[plugin]=PixelYourSite&sw=800&sh=600&v=2.8.47&r=stable&a=dvpixelyoursite&ec=1&o=158&fbp=fb.1.1559071007285.910557468&it=1559071006211&coo=false&rqm=GET"
+                },
+                "GeneralEvent": 1
+            }
+        },
+        "Bing Ads": {},
+        "Google Ads": ["r20190522"]
     },
-    "pathname": "/collect",
-    "path": "/collect?v=1&_v=j75&a=1799258067&t=event&_s=2&dl=http%3A%2F%2Flocalhost%2F&ul=en-us&de=UTF-8&dt=Get%20Out%20Of%20Here%2C%20Stalker!&sd=24-bit&sr=800x600&vp=800x600&je=0&ec=contact&ea=submit&el=form&_u=IEBAAEAB~&jid=&gjid=&cid=278790741.1558555493&tid=UA-0000001-1&_gid=309095230.1558555493&z=1306995020",
-    "href": "https://www.google-analytics.com/collect?v=1&_v=j75&a=1799258067&t=event&_s=2&dl=http%3A%2F%2Flocalhost%2F&ul=en-us&de=UTF-8&dt=Get%20Out%20Of%20Here%2C%20Stalker!&sd=24-bit&sr=800x600&vp=800x600&je=0&ec=contact&ea=submit&el=form&_u=IEBAAEAB~&jid=&gjid=&cid=278790741.1558555493&tid=UA-0000001-1&_gid=309095230.1558555493&z=1306995020"
-
-
-*/
-
-/* GOOGLE ADS
-
-"protocol": "https:",
-    "slashes": true,
-    "auth": null,
-    "host": "googleads.g.doubleclick.net",
-    "port": null,
-    "hostname": "googleads.g.doubleclick.net",
-    "hash": null,
-    "search": "?random=249488597&cv=9&fst=*&num=1&value=1&label=cJKHCI3yvJ0BEIqJ_MwD&guid=ON&resp=GooglemKTybQhCsO&u_h=600&u_w=800&u_ah=600&u_aw=800&u_cd=24&u_his=2&u_tz=-420&u_java=false&u_nplug=0&u_nmime=0&gtm=2wg5f2&sendb=1&frm=0&url=http://localhost/&tiba=Get%20Out%20Of%20Here%2C%20Stalker!&async=1&fmt=3&ctc_id=CAIVAgAAAB0CAAAA&ct_cookie_present=false&ocp_id=ZKvlXNnCOcSh9AOV57GgDA&crd=&gtd=&eitems=ChAI8OaT5wUQnvPjg4C_1Mo6Eh0At185kElHMuu7dhgO8seWFk3ixSiImLcD62H0WQ",
-    "query": {
-        "random": "249488597",
-        "cv": "9",
-        "fst": "*",
-        "num": "1",
-        "value": "1",
-        "label": "cJKHCI3yvJ0BEIqJ_MwD",
-        "guid": "ON",
-        "resp": "GooglemKTybQhCsO",
-        "u_h": "600",
-        "u_w": "800",
-        "u_ah": "600",
-        "u_aw": "800",
-        "u_cd": "24",
-        "u_his": "2",
-        "u_tz": "-420",
-        "u_java": "false",
-        "u_nplug": "0",
-        "u_nmime": "0",
-        "gtm": "2wg5f2",
-        "sendb": "1",
-        "frm": "0",
-        "url": "http://localhost/",
-        "tiba": "Get Out Of Here, Stalker!",
-        "async": "1",
-        "fmt": "3",
-        "ctc_id": "CAIVAgAAAB0CAAAA",
-        "ct_cookie_present": "false",
-        "ocp_id": "ZKvlXNnCOcSh9AOV57GgDA",
-        "crd": "",
-        "gtd": "",
-        "eitems": "ChAI8OaT5wUQnvPjg4C_1Mo6Eh0At185kElHMuu7dhgO8seWFk3ixSiImLcD62H0WQ"
-    },
-    "pathname": "/pagead/viewthroughconversion/966722698/",
-    "path": "/pagead/viewthroughconversion/966722698/?random=249488597&cv=9&fst=*&num=1&value=1&label=cJKHCI3yvJ0BEIqJ_MwD&guid=ON&resp=GooglemKTybQhCsO&u_h=600&u_w=800&u_ah=600&u_aw=800&u_cd=24&u_his=2&u_tz=-420&u_java=false&u_nplug=0&u_nmime=0&gtm=2wg5f2&sendb=1&frm=0&url=http://localhost/&tiba=Get%20Out%20Of%20Here%2C%20Stalker!&async=1&fmt=3&ctc_id=CAIVAgAAAB0CAAAA&ct_cookie_present=false&ocp_id=ZKvlXNnCOcSh9AOV57GgDA&crd=&gtd=&eitems=ChAI8OaT5wUQnvPjg4C_1Mo6Eh0At185kElHMuu7dhgO8seWFk3ixSiImLcD62H0WQ",
-    "href": "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/966722698/?random=249488597&cv=9&fst=*&num=1&value=1&label=cJKHCI3yvJ0BEIqJ_MwD&guid=ON&resp=GooglemKTybQhCsO&u_h=600&u_w=800&u_ah=600&u_aw=800&u_cd=24&u_his=2&u_tz=-420&u_java=false&u_nplug=0&u_nmime=0&gtm=2wg5f2&sendb=1&frm=0&url=http://localhost/&tiba=Get%20Out%20Of%20Here%2C%20Stalker!&async=1&fmt=3&ctc_id=CAIVAgAAAB0CAAAA&ct_cookie_present=false&ocp_id=ZKvlXNnCOcSh9AOV57GgDA&crd=&gtd=&eitems=ChAI8OaT5wUQnvPjg4C_1Mo6Eh0At185kElHMuu7dhgO8seWFk3ixSiImLcD62H0WQ"
-
-*/
-
-
-
-/* MICROSOFT ADS
-
-    "protocol": "https:",
-    "slashes": true,
-    "auth": null,
-    "host": "bat.bing.com",
-    "port": null,
-    "hostname": "bat.bing.com",
-    "hash": null,
-    "search": "?ti=57000000&Ver=2&mid=1fcb8ccb-2da6-76ac-49e2-e9dbd324d2c9&pi=0&lg=en-US&sw=800&sh=600&sc=24&tl=Get%20Out%20Of%20Here,%20Stalker!&p=http%3A%2F%2Flocalhost%2F&r=&lt=243&evt=pageLoad&msclkid=N&rn=983543",
-    "query": {
-        "ti": "57000000",
-        "Ver": "2",
-        "mid": "1fcb8ccb-2da6-76ac-49e2-e9dbd324d2c9",
-        "pi": "0",
-        "lg": "en-US",
-        "sw": "800",
-        "sh": "600",
-        "sc": "24",
-        "tl": "Get Out Of Here, Stalker!",
-        "p": "http://localhost/",
-        "r": "",
-        "lt": "243",
-        "evt": "pageLoad",
-        "msclkid": "N",
-        "rn": "983543"
-    },
-    "pathname": "/action/0",
-    "path": "/action/0?ti=57000000&Ver=2&mid=1fcb8ccb-2da6-76ac-49e2-e9dbd324d2c9&pi=0&lg=en-US&sw=800&sh=600&sc=24&tl=Get%20Out%20Of%20Here,%20Stalker!&p=http%3A%2F%2Flocalhost%2F&r=&lt=243&evt=pageLoad&msclkid=N&rn=983543",
-    "href": "https://bat.bing.com/action/0?ti=57000000&Ver=2&mid=1fcb8ccb-2da6-76ac-49e2-e9dbd324d2c9&pi=0&lg=en-US&sw=800&sh=600&sc=24&tl=Get%20Out%20Of%20Here,%20Stalker!&p=http%3A%2F%2Flocalhost%2F&r=&lt=243&evt=pageLoad&msclkid=N&rn=983543"
-
-*/
-
-/* FACEBOOK PIXEL 
-
-    "protocol": "https:",
-    "slashes": true,
-    "auth": null,
-    "host": "www.facebook.com",
-    "port": null,
-    "hostname": "www.facebook.com",
-    "hash": null,
-    "search": "?id=168539446845503&ev=PageView&dl=http%3A%2F%2Flocalhost%2F&rl=&if=false&ts=1558555493249&sw=800&sh=600&v=2.8.50&r=stable&ec=0&o=158&it=1558555492938&coo=false&rqm=GET",
-    "query": {
-        "id": "168539446845503",
-        "ev": "PageView",
-        "dl": "http://localhost/",
-        "rl": "",
-        "if": "false",
-        "ts": "1558555493249",
-        "sw": "800",
-        "sh": "600",
-        "v": "2.8.50",
-        "r": "stable",
-        "ec": "0",
-        "o": "158",
-        "it": "1558555492938",
-        "coo": "false",
-        "rqm": "GET"
-    },
-    "pathname": "/tr/",
-    "path": "/tr/?id=168539446845503&ev=PageView&dl=http%3A%2F%2Flocalhost%2F&rl=&if=false&ts=1558555493249&sw=800&sh=600&v=2.8.50&r=stable&ec=0&o=158&it=1558555492938&coo=false&rqm=GET",
-    "href": "https://www.facebook.com/tr/?id=168539446845503&ev=PageView&dl=http%3A%2F%2Flocalhost%2F&rl=&if=false&ts=1558555493249&sw=800&sh=600&v=2.8.50&r=stable&ec=0&o=158&it=1558555492938&coo=false&rqm=GET"
-
-*/
+ */

@@ -1,10 +1,13 @@
 ## Tracking Status Tool
+This tool will take a url, parse the url targets sitemap, then crawl each page looking for tracking codes, and ad services. 
 
-This tool is mainly a proof-of-concept currently. It hits a preset URL with puppeteer, listens for network requests, then checks them for hints of various tracking platforms that may be in use. It logs an object with the results of this process upon completion.
+This project uses 
+Google Puppeteer
+sitemap-body-parser
 
 #### Setup
 
-This tool requires Node and a package manager (NPM/Yarn).
+This tool requires Node and a package manager. 
 
 After cloning, simply run the following from the project directory:  
 `yarn` or `npm install`  
