@@ -1,5 +1,5 @@
 /**
-* I like to think of this project as an alcoholic node process that crawls each page with maximum sobriety 
+* I like to think of this project as an alcoholic node process that crawls each page like a bar crawl gone wrong
 * Google Ads:
 *  - Unique String for URL filtering:  'googleads.g.doubleclick.net'
 *  - Conversion ID Expression:         parsedUrl.pathname.split('/')[3];
@@ -17,8 +17,13 @@
 *  - UET HitType Expression:           parsedUrl.query.evt;
 */
 
+// I suggest not running this against a large <50 page site, you'll have to hard restart
+
+
+// Currently 3 stages. Sitemap processing > request URL filtering > display & storage
+
 // #justnodethings
-console.clear()
+console.clear() // this can spit out a ton of info for bigger sites
 var fs = require("fs");
 const puppeteer = require('puppeteer');
 var sitemaps = require('sitemap-stream-parser'); 
@@ -61,7 +66,7 @@ const checkPage = async PAGE => {
 		if (url.indexOf('google-analytics.com') > -1) { // if analytics detected
 			const parsedUrl = URL.parse(url, true); // if the url == the url.indexof true
 			if (typeof parsedUrl.query.tid != 'undefined' && typeof parsedUrl.query.t != 'undefined') {
-				console.log(`## GOOGLE ANALYTICS: ${parsedUrl.query.tid} - ${parsedUrl.query.t.toUpperCase()}`);
+				//console.log(`## GOOGLE ANALYTICS: ${parsedUrl.query.tid} - ${parsedUrl.query.t.toUpperCase()}`);
                 //storeData(GOOGLEANALYTICS, { id: parsedUrl.query.tid, hitType: parsedUrl.query.t ,payload:parsedUrl});
                 storeData(GOOGLEANALYTICS, { 'id': parsedUrl.query.tid, 'hitType': 'Pageview','payload':parsedUrl })
 			}
@@ -151,22 +156,24 @@ const checkPage = async PAGE => {
 // generate the sitemap
 sitemaps.parseSitemaps(urls, function(url) { sitePage.push(url); }, function(err, sitemaps) {
     sitePage.forEach(element => {
-        console.log('# Sitemap Crawler found - ',element)
-    });
+        console.log('# Sitemapper found - ',element)
+	});
+	console.log('     Sitemapper process complete ---------')
     onSitemapComplete() // calling the crawl after this to be sure the sitemap is generated before we  c r a w l 
 });
 
 // go through arr of sites and run checksites against each
+// !! Holy fuck add a load balancer, this will just KO your client if theres more than 50 pages on a site
 function onSitemapComplete(){
-    sitePage.forEach(page => {
+    sitePage.forEach(page => { // ! Probably slow this down so there is only 10 pages being requested / crawled at once
 
 		reportJson[page] = {}; // make anon instance of object for parent site
-		console.log('Testing  ', currentTarget);
 		promiseArr.push(checkPage(page)); // get site && push to arr
+		console.log('Testing  ', currentTarget);
 		
 	});
 	Promise.all(promiseArr).then(() => {
-		console.log('All done! Results:');
+		console.log('       Testing Complete, Results : ');
 		found()
 		fs.writeFile("./json.json", JSON.stringify(reportJson), (err) => {
 			console.log("File has been created");
@@ -189,8 +196,14 @@ function found(){
 		//console.log('# Bing',reportJson[site]['Bing'])
         //console.log('# Google Analytics',reportJson[site])
 		//console.log('### ' + reportJson[page]['googleAnalytics'] + ' - ' + page)
-		for(let i in reportJson[page]['googleAnalytics']){
-			console.log(i + ' - ' + page)
+
+		//RND
+
+		const val = Object.values(reportJson[page]['googleAnalytics'])
+		
+
+		for(let i in val){
+			console.log(val[i].id + ' - ' + val[i].Pageview + ' detected on  ' + page)
 		}
 	});
 }
