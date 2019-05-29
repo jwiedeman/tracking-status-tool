@@ -188,7 +188,10 @@ function found(){
 		//console.log('# Facebook',reportJson[site]['Facebook'])
 		//console.log('# Bing',reportJson[site]['Bing'])
         //console.log('# Google Analytics',reportJson[site])
-        //console.log('### ' + reportJson[page]['googleAnalytics'] + ' - ' + page)
+		//console.log('### ' + reportJson[page]['googleAnalytics'] + ' - ' + page)
+		for(let i in reportJson[page]['googleAnalytics']){
+			console.log(i + ' - ' + page)
+		}
 	});
 }
 
