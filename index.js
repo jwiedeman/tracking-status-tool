@@ -68,7 +68,7 @@ const checkPage = async PAGE => {
 			if (typeof parsedUrl.query.tid != 'undefined' && typeof parsedUrl.query.t != 'undefined') {
 				//console.log(`## GOOGLE ANALYTICS: ${parsedUrl.query.tid} - ${parsedUrl.query.t.toUpperCase()}`);
                 //storeData(GOOGLEANALYTICS, { id: parsedUrl.query.tid, hitType: parsedUrl.query.t ,payload:parsedUrl});
-                storeData(GOOGLEANALYTICS, { 'id': parsedUrl.query.tid, 'hitType': 'Pageview','payload':parsedUrl })
+                storeData(GOOGLEANALYTICS, { 'id': parsedUrl.query.tid, 'hitType': parsedUrl.query.t,'payload':parsedUrl })
 			}
 
 		// facebook pixel 
@@ -77,7 +77,7 @@ const checkPage = async PAGE => {
 			if (typeof parsedUrl.query.id != 'undefined' && typeof parsedUrl.query.id != 'undefined') {
 				//console.log(`## FACEBOOK PIXEL: ${PAGE} - ${parsedUrl.query.ev.toUpperCase()}`);
                 //storeData(FACEBOOK, { id: parsedUrl.query.id, hitType: parsedUrl.query.ev ,payload:parsedUrl});
-                storeData(FACEBOOK, { 'id': parsedUrl.query.id, 'hitType': 'Pageview','payload':parsedUrl })
+                storeData(FACEBOOK, { 'id': parsedUrl.query.id, 'hitType': parsedUrl.query.ev,'payload':parsedUrl })
 			}
 
 		// google ads
@@ -95,7 +95,7 @@ const checkPage = async PAGE => {
 			if (parsedUrl.protocol == 'https:' &&typeof parsedUrl.query.ti != 'undefined' && typeof parsedUrl.query.evt != 'undefined') {
 				//console.dir(`## BING UET: ${PAGE} - ${parsedUrl.query.evt}`);
                 //storeData(BING, { id: parsedUrl.query.ti, hitType: parsedUrl.query.evt,payload:parsedUrl });
-                storeData(BING, { 'id': parsedUrl.query.ti, 'hitType':'Pageview','payload':parsedUrl })
+                storeData(BING, { 'id': parsedUrl.query.ti, 'hitType':parsedUrl.query.evt,'payload':parsedUrl })
 			}
         }
        
@@ -111,8 +111,8 @@ const checkPage = async PAGE => {
     
 
 
-    // site > page > platforms > values > payload
-    // arr > obj  > obj > obj > obj
+		// reportjson > site > page > platforms > id's > payload
+		// obj > arr > obj  > obj > obj > obj
     
 
     
@@ -122,7 +122,7 @@ const checkPage = async PAGE => {
     
     if(typeof id != undefined && typeof hitType != undefined){ // check if incoming data exists, proceed if true
      let data = _page[platform]
-	 data[id] = (typeof id !=undefined) ?  {'id':id} : {}
+	 data[id] = (typeof id !=undefined) ?  {'id':id, 'hitType':hitType,'payload':payload} : {}
 	 data[id][hitType] = (typeof hitType !=undefined) ?  hitType : {}
      data[id][hitType][payload] = ( payload !=undefined) ? payload : {}
     
@@ -156,9 +156,9 @@ const checkPage = async PAGE => {
 // generate the sitemap
 sitemaps.parseSitemaps(urls, function(url) { sitePage.push(url); }, function(err, sitemaps) {
     sitePage.forEach(element => {
-        console.log('# Sitemapper found - ',element)
+        console.log('       # Sitemapper found - ',element)
 	});
-	console.log('     Sitemapper process complete ---------')
+	console.log('Sitemapper process complete ---------')
     onSitemapComplete() // calling the crawl after this to be sure the sitemap is generated before we  c r a w l 
 });
 
@@ -169,18 +169,16 @@ function onSitemapComplete(){
 
 		reportJson[page] = {}; // make anon instance of object for parent site
 		promiseArr.push(checkPage(page)); // get site && push to arr
-		console.log('Testing  ', currentTarget);
+		console.log('       Testing  ', currentTarget);
 		
 	});
 	Promise.all(promiseArr).then(() => {
-		console.log('       Testing Complete, Results : ');
+		console.log('Testing Complete, Results : ');
 		found()
 		fs.writeFile("./json.json", JSON.stringify(reportJson), (err) => {
 			console.log("File has been created");
         });
         
-
-
 	});
 
 }
@@ -198,13 +196,20 @@ function found(){
 		//console.log('### ' + reportJson[page]['googleAnalytics'] + ' - ' + page)
 
 		//RND
-
-		const val = Object.values(reportJson[page]['googleAnalytics'])
 		
-
-		for(let i in val){
-			console.log(val[i].id + ' - ' + val[i].Pageview + ' detected on  ' + page)
+		const _page = Object.values(reportJson[page])
+		const _adPlatform = Object.values(reportJson[page]['googleAnalytics'])
+		let a =0;
+		for(let i in _page){
+			
+			console.log(_page[i]);
 		}
+
+		/** 		for(let i in _adPlatform){
+			console.log('       '+_adPlatform[i].id + ' - ' + _adPlatform[i].hitType + ' detected on ' + page)
+		}*/
+
+
 	});
 }
 
