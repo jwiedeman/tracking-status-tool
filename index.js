@@ -40,7 +40,7 @@ let promiseArr = [];
 let targetSite ='http://whostracking.me/sitemap.xml' // Parent target, this will be the base URL to work off of
 let currentTarget = ''; //current url being tried
 const sitePage = [];
-var urls = ['http://whostracking.me/sitemap.xml'];
+var urls = ['https://www.processsolutions.com/sitemap.xml'];
 
 const site = [];
 
